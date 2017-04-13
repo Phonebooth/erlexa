@@ -1,0 +1,16 @@
+{application, 'erlexa', [
+    {description, "An Erlang library to help with signature verification of an Alexa request when implementing Alexa Skill"},
+    {vsn, "0.1.0"},
+    {registered, []},
+    {applications, [
+        kernel,
+        stdlib,
+        hackney
+    ]},
+    {env,[]},
+    {modules, []},
+
+    {maintainers, []},
+    {licenses, []},
+    {links, []}
+]}.
