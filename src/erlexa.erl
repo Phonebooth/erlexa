@@ -50,7 +50,14 @@ verify_signature_ll(RequestBody, Signature, OtpCert) ->
     public_key:verify(RequestBody, sha, base64:decode(Signature), Key).
 
 get_cert_chain(CertURL) ->
-    {ok, Pem} = download_pem(CertURL),
+    {ok, Pem} = case cache:get(cert_cache, CertURL) of
+        P ->
+            {ok, P};
+        not_found ->
+            {ok, P} = download_pem(CertURL),
+            cache:put(cert_cache, CertURL, P),
+            {ok, P}
+    end,
     pem_to_certs(Pem).
 
 pem_to_certs(Pem) ->
