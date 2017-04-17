@@ -13,9 +13,11 @@
 verify_signature(RequestBody, Signature, CertificateURL) ->
     case verify_cert_url(CertificateURL) of
         true ->
-            CertChain = get_cert_chain(CertificateURL),
+            CertChain = [Cert | _] = get_cert_chain(CertificateURL),
+            OtpCert = public_key:pkix_decode_cert(Cert, otp),
             verify_cert_chain(CertChain) andalso
-            verify_signature_ll(RequestBody, Signature, CertChain);
+            verify_cert_domain(OtpCert) andalso
+            verify_signature_ll(RequestBody, Signature, OtpCert);
         false ->
             false
     end.
@@ -37,8 +39,14 @@ verify_cert_chain(CertChain) ->
         _ -> false
     end.
 
-verify_signature_ll(RequestBody, Signature, CertChain) ->
-    Key = get_public_key(CertChain),
+verify_cert_domain(OtpCert) ->
+    case ssl_verify_hostname:verify_cert_hostname(OtpCert, "echo-api.amazon.com") of
+        {valid, _} -> true;
+        _ -> false
+    end.
+
+verify_signature_ll(RequestBody, Signature, OtpCert) ->
+    Key = get_public_key(OtpCert),
     public_key:verify(RequestBody, sha, base64:decode(Signature), Key).
 
 get_cert_chain(CertURL) ->
@@ -49,8 +57,7 @@ pem_to_certs(Pem) ->
     [Cert || {'Certificate', Cert, not_encrypted}
         <- public_key:pem_decode(Pem)].
 
-get_public_key([Cert | _]) ->
-    OtpCert = public_key:pkix_decode_cert(Cert, otp),
+get_public_key(OtpCert) ->
     TBSCert = OtpCert#'OTPCertificate'.tbsCertificate,
     PublicKeyInfo = TBSCert#'OTPTBSCertificate'.subjectPublicKeyInfo,
     PublicKeyInfo#'OTPSubjectPublicKeyInfo'.subjectPublicKey.
@@ -108,6 +115,11 @@ verify_cert_url_test_() -> [
 verify_cert_chain_test() ->
     ?assertEqual(true, verify_cert_chain(pem_to_certs(test_pem_certs()))).
 
+verify_cert_domain_test() ->
+    [Cert | _] = pem_to_certs(test_pem_certs()),
+    OtpCert = public_key:pkix_decode_cert(Cert, otp),
+    ?assertEqual(true, verify_cert_domain(OtpCert)).
+
 verify_signature_ll_test() ->
     % TODO: generate certs and signature on the fly
 
@@ -115,7 +127,10 @@ verify_signature_ll_test() ->
 
     Signature = <<"mMjezw0FlDuweHrC7/48EeAHMmnvV6lCsyKcWbR44XA16XnEIaMIg8gDfuUItf0igObVi+f+IIJjia8nC2YaMzyN27HuRSXoCQSQ5a2adYuWMptnDoobUaPaBrkhiIP7GW4COOrG3XhG+asJiD1c+uNsysd85DoneuUvdMXiYAs+4L8i+GUk0D0zneGnsPMlrqIt8j1q4jy58T0zX8LqYPfbQf7cxAZqoEtKZOYQM7txcbb8qCRpfCJa85kfDp7BihFa8U2XXJcC/iT+MBk33X8bciCWlksflE/UID5VdR/QUPllmsWgP/Cy9paQeXI8oiEeiaEK2c268990cV20Xw==">>,
 
-    ?assertEqual(true, verify_signature_ll(Body, Signature, pem_to_certs(test_pem_certs()))).
+    [Cert | _] = pem_to_certs(test_pem_certs()),
+    OtpCert = public_key:pkix_decode_cert(Cert, otp),
+
+    ?assertEqual(true, verify_signature_ll(Body, Signature, OtpCert)).
 
 
 test_pem_certs() ->
