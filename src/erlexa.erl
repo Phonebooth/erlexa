@@ -51,12 +51,12 @@ verify_signature_ll(RequestBody, Signature, OtpCert) ->
 
 get_cert_chain(CertURL) ->
     {ok, Pem} = case cache:get(cert_cache, CertURL) of
-        P ->
-            {ok, P};
-        not_found ->
+        undefined ->
             {ok, P} = download_pem(CertURL),
             cache:put(cert_cache, CertURL, P),
-            {ok, P}
+            {ok, P};
+        V ->
+            {ok, V}
     end,
     pem_to_certs(Pem).
 
