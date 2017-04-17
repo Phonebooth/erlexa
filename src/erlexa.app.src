@@ -7,7 +7,8 @@
         kernel,
         stdlib,
         hackney,
-        ssl_verify_fun
+        ssl_verify_fun,
+        cache
     ]},
     {env,[]},
     {modules, []},
