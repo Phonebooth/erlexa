@@ -15,7 +15,7 @@ verify_signature(RequestBody, Signature, CertificateURL) ->
         true ->
             CertChain = get_cert_chain(CertificateURL),
             verify_cert_chain(CertChain) andalso
-            verify_signature_ll(Signature, RequestBody, CertChain);
+            verify_signature_ll(RequestBody, Signature, CertChain);
         false ->
             false
     end.
