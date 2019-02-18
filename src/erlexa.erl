@@ -1,10 +1,13 @@
 -module(erlexa).
 
--include_lib("hackney/include/hackney_lib.hrl").
+%%-include_lib("hackney/include/hackney_lib.hrl").
 -include_lib("public_key/include/public_key.hrl").
 
 -export([
-    verify_signature/3
+    verify_signature/3,
+
+    verify_cert_url/1,
+    get_cert_chain/1
 ]).
 
 %%====================================================================
@@ -26,11 +29,11 @@ verify_signature(RequestBody, Signature, CertificateURL) ->
 %% Internal functions
 %%====================================================================
 verify_cert_url(CertURL) ->
-    URL = hackney_url:parse_url(CertURL),
-    URL#hackney_url.scheme == https andalso
-    URL#hackney_url.host == "s3.amazonaws.com" andalso
-    binary:match(URL#hackney_url.path, <<"/echo.api/">>, []) == {0, 10} andalso
-    URL#hackney_url.port == 443.
+    URL = http_uri:parse(CertURL),
+    {ok, {Scheme, _, Host, Port, Path, _}} = URL,
+    Scheme == https andalso Host == "s3.amazonaws.com" andalso
+    binary:match(list_to_binary(Path), <<"/echo.api/">>, []) == {0, 10} andalso
+    Port == 443.
 
 verify_cert_chain(CertChain) ->
     [RootCert | Rest] = lists:reverse(CertChain),
@@ -70,9 +73,15 @@ get_public_key(OtpCert) ->
     PublicKeyInfo#'OTPSubjectPublicKeyInfo'.subjectPublicKey.
 
 download_pem(URL) ->
-    {ok, 200, _, Ref} = hackney:request(URL),
-    {ok, Body} = hackney:body(Ref),
-    {ok, Body}.
+    case ibrowse:send_req(URL, [], get, [], [{is_ssl, true}, {ssl_options, [{verify,verify_none}, {depth, 3}]}]) of
+        {error, Error} ->
+            {error, Error};
+        {ok,"200",_,Body} ->
+            {ok, list_to_binary(Body)}
+    end.
+%%    {ok, 200, _, Ref} = hackney:request(URL),
+%%    {ok, Body} = hackney:body(Ref),
+%%    {ok, Body}.
 
 %%====================================================================
 %% Tests
