@@ -19,6 +19,7 @@ start(_StartType, _StartArgs) ->
     ok=application_utils:ensure_started(public_key),
     ok=application_utils:ensure_started(ssl),
     ok=application_utils:ensure_started(ibrowse),
+
     erlexa_sup:start_link().
 
 %%--------------------------------------------------------------------

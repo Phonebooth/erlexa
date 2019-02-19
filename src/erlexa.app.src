@@ -5,10 +5,7 @@
     {mod, {erlexa_app, []}},
     {applications, [
         kernel,
-        stdlib,
-        hackney,
-        ssl_verify_fun,
-        cache
+        stdlib
     ]},
     {env,[]},
     {modules, []},

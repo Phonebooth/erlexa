@@ -1,6 +1,5 @@
 -module(erlexa).
 
-%%-include_lib("hackney/include/hackney_lib.hrl").
 -include_lib("public_key/include/public_key.hrl").
 
 -export([
@@ -44,8 +43,10 @@ verify_cert_chain(CertChain) ->
 
 verify_cert_domain(OtpCert) ->
     case ssl_verify_hostname:verify_cert_hostname(OtpCert, "echo-api.amazon.com") of
-        {valid, _} -> true;
-        _ -> false
+        {valid, _} ->
+            true;
+        _ ->
+            false
     end.
 
 verify_signature_ll(RequestBody, Signature, OtpCert) ->
@@ -76,6 +77,8 @@ download_pem(URL) ->
     case ibrowse:send_req(URL, [], get, [], [{is_ssl, true}, {ssl_options, [{verify,verify_none}, {depth, 3}]}]) of
         {error, Error} ->
             {error, Error};
+        {ok,"200",_,Body} when is_binary(Body)->
+            {ok, Body};
         {ok,"200",_,Body} ->
             {ok, list_to_binary(Body)}
     end.
