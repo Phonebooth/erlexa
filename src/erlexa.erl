@@ -5,7 +5,7 @@
 
 -export([
     verify_signature/3,
-
+    verify_signature_ll/3,
     verify_cert_url/1,
     get_cert_chain/1
 ]).
